@@ -1,5 +1,11 @@
 {
     "NODE_ENV": "prod",
     "DEBUG": true,
-    "PORT": 8092
+    "PORT": 8092,
+    "cloudinary_example":
+    {
+        "cloud_name": "XXXXXXX",
+        "api_key": "12312334343",
+        "api_secret": "XXXXXXXX"
+    }
 }
