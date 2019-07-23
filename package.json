@@ -4,6 +4,7 @@
     "description": "",
     "main": "index.js",
     "dependencies": {
+        "async": "^3.1.0",
         "body-parser": "^1.17.2",
         "cloudinary": "^1.14.0",
         "compression": "^1.6.2",
