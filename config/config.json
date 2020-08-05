@@ -14,6 +14,7 @@
         "enabled": true, 
         "autostart": true,
         "stop_on_error":true, 
-        "trigger_interval":12000
+        "trigger_interval":6000, 
+        "save_frequency": 10
     }
 }

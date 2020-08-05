@@ -7,7 +7,8 @@ var stressTestModule = {
         waiting_for_content: false
     },
     cameras: [],
-    trigger_interval_time: 10000 //10 sec
+    trigger_interval_time: 10000, //10 sec, 
+    save_frequency: 100
 }
 module.exports = stressTestModule;
 var global_config = require("../../config/config.json");
@@ -18,8 +19,12 @@ const chalk = require("chalk")
 
 
 stressTestModule.enabled = global_config.stress_test && global_config.stress_test.enabled;
-if(global_config.stress_test && global_config.stress_test.trigger_interval){
+if (global_config.stress_test && global_config.stress_test.trigger_interval) {
     stressTestModule.trigger_interval_time = global_config.stress_test.trigger_interval;
+}
+
+if (global_config.stress_test && global_config.stress_test.save_frequency) {
+    stressTestModule.save_frequency = global_config.stress_test.save_frequency;
 }
 
 
@@ -47,7 +52,7 @@ if (router) {
 // Can be invoked via REST get call @ http://localhost:9092/api/stress/start
 stressTestModule.start = function () {
     global.logger.info(chalk.yellow("=== Starting stress test module === "));
-    global.logger.info("Trigger interval is: " + chalk.green(stressTestModule.trigger_interval_time + " ms"));
+    global.logger.info("Trigger interval is: " + chalk.green(stressTestModule.trigger_interval_time) + " ms - save fequency: " + chalk.green(stressTestModule.save_frequency));
     stressTestModule.status.started = true;
     stressTestModule.status.shot_counter = 0;
 
@@ -55,7 +60,11 @@ stressTestModule.start = function () {
         clearInterval(stressTestModule.trigger_interval);
     }
     stressTestModule.trigger_interval = setInterval(() => {
-        stressTestModule.trigger((error) => { if (error) { stressTestModule.reportError(error); } })
+        stressTestModule.trigger((error) => {
+            if (error) {
+                stressTestModule.reportError(error.message ? error.message:error);
+            }
+        })
     }, stressTestModule.trigger_interval_time)
 }
 
@@ -77,6 +86,11 @@ stressTestModule.reportError = function (error) {
         stressTestModule.stop();
     }
 }
+
+// Stop the stress test if the corresponding option is enabled
+stressTestModule.reportSuccess = function () {
+}
+
 
 stressTestModule.reportWarning = function (message) {
     global.logger.warn(message);
@@ -115,6 +129,7 @@ stressTestModule.trigger = function (callback) {
             stressTestModule.status.shot_counter++;
             stressTestModule.status.waiting_for_content = true;
             global.logger.info("[STRESS TEST] Waiting for shot #" + "{" + stressTestModule.status.shot_counter + "}");
+            return callback();
         });
     });
 }
@@ -149,7 +164,7 @@ stressTestModule.checkContent = function (content, callback) {
 
 // Callback activated when XCS just published some new content
 xangle.on("new_content", (content) => {
-    global.logger.info("[STRESS TEST] received new content: " + "{" + stressTestModule.status.shot_counter + "} - "  + content.timestamp);
+    global.logger.info("[STRESS TEST] received new content: " + "{" + stressTestModule.status.shot_counter + "} - " + content.timestamp);
     if (!stressTestModule.status.waiting_for_content) {
         return stressTestModule.reportError(new Error("No new content was expected, something went wrong..."));
     };
@@ -158,12 +173,18 @@ xangle.on("new_content", (content) => {
             stressTestModule.status.waiting_for_content = false;
             if (content_error) {
                 stressTestModule.reportError(content_error)
-            }else{
+            } else {
                 global.logger.info(chalk.green("[STRESS TEST] CHECK Passed for shot #" + stressTestModule.status.shot_counter + " - " + content.timestamp))
+                stressTestModule.reportSuccess();
             }
-            xangle.deleteContent(content.timestamp, (err) => {
+            if(stressTestModule.status.shot_counter % stressTestModule.save_frequency != 0){
+                xangle.deleteContent(content.timestamp, (err) => {
 
-            });
+                });
+            }
+           else{
+               global.logger.info("[STRESS TEST] Saving shot #" + stressTestModule.status.shot_counter + " - " + content.timestamp);
+           }
         })
     }
 })
