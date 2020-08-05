@@ -6,6 +6,7 @@
     "dependencies": {
         "async": "^3.1.0",
         "body-parser": "^1.17.2",
+        "chalk": "^4.1.0",
         "cloudinary": "^1.14.0",
         "compression": "^1.6.2",
         "cookie-parser": "^1.4.3",
@@ -14,11 +15,12 @@
         "helmet": "^3.6.1",
         "method-override": "^2.3.9",
         "mkdirp": "^0.5.1",
-        "moment": "^2.18.1",
+        "moment": "^2.27.0",
         "morgan": "^1.8.2",
         "request": "^2.88.0",
         "socket.io": "^2.2.0",
-        "socket.io-client": "^2.2.0"
+        "socket.io-client": "^2.2.0",
+        "winston": "^3.3.3"
     },
     "devDependencies": {},
     "scripts": {

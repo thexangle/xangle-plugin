@@ -6,7 +6,7 @@ io.on('connection', function (socket) {
 });
 
 io.on('share_request', (request) => { 
-    console.log(' Received share request: ' + JSON.stringify(request, null, 4));
+    global.logger.verbose(' Received share request: ' + JSON.stringify(request, null, 4));
     plugins.share.forEach((plugin) => {
         plugin.share(request);
     })

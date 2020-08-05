@@ -11,6 +11,9 @@
     },
     "stress_test":
     {
-        "enabled": true
+        "enabled": true, 
+        "autostart": true,
+        "stop_on_error":true, 
+        "trigger_interval":12000
     }
 }

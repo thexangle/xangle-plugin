@@ -9,10 +9,14 @@ const request = require('request');
 const async = require('async');
 
 xangleApiModule.getCameras = function (callback) {
-    request.get(server_url + "/api/cameras", callback);
+    request.get(server_url + "/api/cameras", (err, res) => {
+        if(err) { return callback(err) }
+        return callback(err, res && res.body ? JSON.parse(res.body) : null);
+    });
 }
 
 xangleApiModule.trigger = function (callback) {
+    global.logger.verbose("[Xangle API] Sending trigger signal");
     request.post(server_url + "/api/trigger", {
         json: {}
     }, (error, res /*, body*/) => {
@@ -29,14 +33,14 @@ xangleApiModule.deleteContent = function (timestamp, callback) {
         var success = res && res.body && !res.body.err && res.body.success == true;
         var restimestamp =  res.body && res.body.timestamp ? res.body.timestamp : "unknown";
 
-        global.logger.verbose("[Xangle API] Sent delete command for timestamp: ", + restimestamp);
+        global.logger.verbose("[Xangle API] Sent delete command for timestamp: " + restimestamp);
        
         if(reqError || !success){
-            global.logger.debug("[Xangle API] failed to delete data with timestamp: ", + restimestamp + ":" + reqError);
+            global.logger.warn("[Xangle API] failed to delete data with timestamp: ", + restimestamp + ":" + reqError);
             cberr = new Error("failed to delete data with timestamp: ", + restimestamp + ":" + reqError);
         }
         else{
-            global.logger.debug("[Xangle API] deleted data with timestamp: " + restimestamp);
+            global.logger.verbose("[Xangle API] deleted data with timestamp: " + restimestamp);
         }
         return callback ? callback(cberr, null) : null;
     });
