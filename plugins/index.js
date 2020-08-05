@@ -15,7 +15,7 @@ try{
 available_share_plugins.forEach( (file) => { 
     try{
         var plugin = require("./share/"+file);
-        if(plugin.share != undefined){
+        if(plugin && plugin.share != undefined && plugin.enabled){
             console.log("SHARE plugin: ", file, " loaded")
             plugins.share.push(plugin);
         }
@@ -27,7 +27,13 @@ available_share_plugins.forEach( (file) => {
 available_camera_plugins.forEach( (file) =>{ 
     try{
         var plugin = require(path.join(__dirname, "camera", file));
-    }catch(e){}
+        if(plugin && plugin.enabled){
+            console.log("Camera plugin: ", file, " loaded");
+            plugins.camera.push(plugin);
+        }
+    }catch(e){
+        console.log("failed to load plugin: ", file, " -> ", e);
+    }
 });
 
 

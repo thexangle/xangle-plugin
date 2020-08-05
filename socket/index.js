@@ -2,7 +2,7 @@ const io = require('../config/socket.io').io;
 const plugins = require('../plugins/index.js')
 
 io.on('connection', function (socket) {
-    console.log('new user connect to socket io');
+    console.log('new user connected to socket io');
 });
 
 io.on('share_request', (request) => { 

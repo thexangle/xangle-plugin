@@ -15,7 +15,7 @@ if(!global.logger){
 
 
 http.listen(Config.PORT, () => {
-    global.logger.info('Starting Xangle Plugin started on port ' + Config.PORT);
+    global.logger.info('Starting Xangle Plugin on port ' + Config.PORT);
 
     require('./route/index');
     require('./socket/index');
