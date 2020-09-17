@@ -20,6 +20,13 @@ const myFormat = printf(({ level, message, label, timestamp }) => {
     }
 });
 
+
+const myFormat_nocolor = printf(({ level, message, label, timestamp }) => {
+    var string = `[${moment(timestamp).format('h:mm:ss:SSS')}] [${level}] ${message}`;
+    return string;
+});
+
+
 var loggerModule = {}
 
 loggerModule.timestamp_logger = function () {
@@ -65,7 +72,8 @@ loggerModule.createDefaultLoggers = function (logLevel) {
                 formatter: loggerModule.formatter_logger_no_color,
                 json: false,
                 colorize: false,
-                filename: path.join(process.cwd() + "xangle-plugin-logs.txt")
+                filename: path.join("reports", datetime_file_logger + "_xangle-plugin-logs.txt"),
+                format: myFormat_nocolor
             })
         ],
         exceptionHandlers: [

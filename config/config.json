@@ -11,10 +11,21 @@
     },
     "stress_test":
     {
+        "enabled": false, 
+        "autostart": true,
+        "stop_on_error":true, 
+        "trigger_interval":10000, 
+        "save_frequency": 10
+    },
+    "stress_test_burst":
+    {
         "enabled": true, 
         "autostart": true,
         "stop_on_error":true, 
-        "trigger_interval":6000, 
+        "capture_timeout":10000, 
+        "burst_delay": 100,
+        "burst_count":5, 
+        "burst_cooldown":20000,
         "save_frequency": 10
     }
 }

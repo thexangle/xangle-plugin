@@ -1,11 +1,14 @@
 const Config = require('./config/config.json');
 const http = require('./config/express').http;
-const io = require('./config/socket.io').io;
-const chalk = require('chalk');
+const commander = global.commander ? global.commander : require('commander');
 
+commander.parse(process.argv);
+
+var logLevel = commander.loglevel ? global.commander.loglevel : 'debug';
+console.log("loglevel :" + logLevel)
 if(!global.logger){
    const loggerModule = require('./config/logger');
-   loggerModule.createDefaultLoggers("verbose");
+   loggerModule.createDefaultLoggers(logLevel);
 }
 
 

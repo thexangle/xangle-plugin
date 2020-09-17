@@ -15,6 +15,13 @@ xangleApiModule.getCameras = function (callback) {
     });
 }
 
+xangleApiModule.getCameraOrder = function (callback) {
+    request.get(server_url + "/api/order/status", (err, res) => {
+        if(err) { return callback(err) }
+        return callback(err, res && res.body ? JSON.parse(res.body) : null);
+    });
+}
+
 xangleApiModule.trigger = function (callback) {
     global.logger.verbose("[Xangle API] Sending trigger signal");
     request.post(server_url + "/api/trigger", {

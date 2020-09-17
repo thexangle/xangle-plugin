@@ -7,6 +7,7 @@ var stressTestModule = {
         waiting_for_content: false
     },
     cameras: [],
+    order: null,
     trigger_interval_time: 10000, //10 sec, 
     save_frequency: 100
 }
@@ -16,6 +17,7 @@ const io = require('../../config/socket.io').io;
 var router = require("../../route");
 var xangle = require("../../xangle_api");
 const chalk = require("chalk")
+const async_module = require("async");
 
 
 stressTestModule.enabled = global_config.stress_test && global_config.stress_test.enabled;
@@ -60,7 +62,7 @@ stressTestModule.start = function () {
         clearInterval(stressTestModule.trigger_interval);
     }
     stressTestModule.trigger_interval = setInterval(() => {
-        stressTestModule.trigger((error) => {
+        stressTestModule.mainLoop((error) => {
             if (error) {
                 stressTestModule.reportError(error.message ? error.message:error);
             }
@@ -80,8 +82,8 @@ stressTestModule.stop = function () {
 }
 
 // Stop the stress test if the corresponding option is enabled
-stressTestModule.reportError = function (error) {
-    global.logger.error(error);
+stressTestModule.reportError = function (error_message) {
+    global.logger.error(error_message.message ? error_message.message : error_message);
     if (global_config.stress_test && global_config.stress_test.stop_on_error) {
         stressTestModule.stop();
     }
@@ -107,31 +109,57 @@ stressTestModule.getCameras = async function (callback) {
     });
 }
 
+//Retrieve information about camera order and expected camera serials
+stressTestModule.getCameraOrder = async function (callback) {
+    xangle.getCameraOrder((err, order) => {
+        if (!err && order != null) {
+            stressTestModule.order = order;
+        }
+        return callback(err, order);
+    });
+}
+
+stressTestModule.trigger = async function(callback){
+    xangle.trigger((trigger_error) => {
+        if (trigger_error) {
+            return callback(new Error("Failed to trigger cameras: " + trigger_error))
+        }
+        stressTestModule.status.shot_counter++;
+        stressTestModule.status.waiting_for_content = true;
+        global.logger.info("[STRESS TEST] Waiting for shot #" + "{" + stressTestModule.status.shot_counter + "}");
+        return callback();
+    });
+}
+
 // Update the list of cameras (for content checking) and send a trigger signal
 // Change the module state to "waiting for new content"
+stressTestModule.mainLoop = async function (callback) {
 
-stressTestModule.trigger = function (callback) {
-    // update camera list before trigger
-    stressTestModule.getCameras((err, cameras) => {
-        if (err || !cameras) {
-            stressTestModule.reportWarning("Failed to retrieve camera list from XangleCS");
-            return callback();
-        }
-        if (stressTestModule.status.waiting_for_content) {
-            return callback(new Error("Did not retrieve file from previous trigger !"))
-        }
-        var camera_count = cameras ? cameras.length : 0;
-        global.logger.info("[STRESS TEST] Xangle CS is reporting: " + camera_count + " connected camera(s)");
-        xangle.trigger((trigger_error) => {
-            if (trigger_error) {
-                return callback(new Error("Failed to trigger cameras: " + trigger_error))
-            }
-            stressTestModule.status.shot_counter++;
-            stressTestModule.status.waiting_for_content = true;
-            global.logger.info("[STRESS TEST] Waiting for shot #" + "{" + stressTestModule.status.shot_counter + "}");
-            return callback();
-        });
+    if (stressTestModule.status.waiting_for_content) {
+        return callback(new Error("Did not retrieve file from previous trigger !"))
+    }
+    stressTestModule.getAndCheckCameraInfo((err) => {
+        if(err) { return callback(err); }
+        stressTestModule.trigger( (trigger_error) =>{
+            return callback(trigger_error);
+        })
     });
+}
+
+// Make sure that the list of cameras is consistent with what was there when we assigned an order
+stressTestModule.getAndCheckCameraInfo = function (callback) {
+    stressTestModule.getCameraOrder( (err, order) =>{
+        if(err || order == null){
+            return callback(new Error("Could not retrieve camera ordering info from server"));
+        }
+        global.logger.info("[STRESS TEST] Xangle CS is reporting: " + order.connected_count + " connected camera(s) / " + order.expected_count + " expected");
+        var missing_cams = order.missing_cameras && order.missing_cameras.length ? order.missing_cameras : [];
+        if(order.connected_count != order.expected_count || missing_cams.length){
+            var errorMessage = "Camera list inconsistency detected: " + JSON.stringify(order, null, 4);
+            return callback(new Error(errorMessage));
+        }
+        return callback();
+    })
 }
 
 // Make sure that the new files are consistent with the cameras that are currently connected
@@ -140,15 +168,15 @@ stressTestModule.checkContent = function (content, callback) {
     if (content.original_files == null || !content.original_files.length) {
         return callback(new Error("No files reference in the published content metadata"));
     }
-    if (!stressTestModule.cameras) {
+    if (!stressTestModule.order || !stressTestModule.order.expected_count) {
         return callback(new Error("No known cameras. Cannot check content"));
     }
     let expected_indices = [];
 
     // push the camera indices of all the known cameras in a list
-    stressTestModule.cameras.forEach((camera) => {
-        expected_indices.push(camera.order);
-    })
+    for(let i = 0; i < stressTestModule.order.expected_count; ++i ){
+        expected_indices.push( i + 1);
+    }
 
     // and remove the corresponding index once we've found the matching file in the published content
     content.original_files.forEach((file_meta) => {
@@ -161,6 +189,7 @@ stressTestModule.checkContent = function (content, callback) {
     }
     return callback();
 }
+
 
 // Callback activated when XCS just published some new content
 xangle.on("new_content", (content) => {
