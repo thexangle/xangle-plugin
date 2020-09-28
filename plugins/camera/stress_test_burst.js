@@ -128,9 +128,8 @@ stressTestBurstModule.trigger = async function (callback) {
         if (trigger_error) {
             return callback(new Error("Failed to trigger cameras: " + trigger_error))
         }
-        stressTestBurstModule.status.shot_counter++;
         stressTestBurstModule.status.waiting_for_content++;
-        global.logger.info("[STRESS TEST] Waiting for shot #" + "{" + stressTestBurstModule.status.shot_counter + "}" + "- " + stressTestBurstModule.status.waiting_for_content + " in waiting line" );
+        global.logger.info("[STRESS TEST] Waiting for shot - " + stressTestBurstModule.status.waiting_for_content + " in waiting line" );
         return callback();
     });
 }
@@ -164,7 +163,7 @@ stressTestBurstModule.mainLoop = function () {
                 
                 clearInterval(progressInterval);
                 bar1.stop();
-                global.logger.info("[STRESS TEST] starting new burst sequence (" + stressTestBurstModule.status.burst_counter + ")")
+               // global.logger.info("[STRESS TEST] starting new burst sequence (" + stressTestBurstModule.status.burst_counter + ")")
                 stressTestBurstModule.mainLoop();
             }, stressTestBurstModule.burst_cooldown);
         }
@@ -182,11 +181,26 @@ stressTestBurstModule.wait_for_capture = function (callback) {
             return callback(err);
         }
     });
+    if (stressTestBurstModule.wait_capture_interval) {
+        clearInterval(stressTestBurstModule.wait_capture_interval);
+    }
     stressTestBurstModule.wait_capture_interval = setInterval(() => {
-        if (!stressTestBurstModule.status.waiting_for_content > 0) {
+        if (stressTestBurstModule.status.waiting_for_content <= 0) {
             stressTestBurstModule.stopCaptureTimeout();
             clearInterval(stressTestBurstModule.wait_capture_interval);
             return callback();
+        }
+        else if (stressTestBurstModule.resetTimeoutToggle){
+            stressTestBurstModule.resetTimeoutToggle = false;
+            stressTestBurstModule.startCaptureTimeout((err) => {
+                //timeout reached :(
+                if (err) {
+                    if (stressTestBurstModule.wait_capture_interval) {
+                        clearInterval(stressTestBurstModule.wait_capture_interval);
+                    }
+                    return callback(err);
+                }
+            });
         }
     }, 300);
 
@@ -213,6 +227,7 @@ stressTestBurstModule.burstLoop = async function (callback) {
     var tasks = [];
     tasks.push((taskcb) => { return taskcb(!stressTestBurstModule.status.started ? new Error("Test stopped") : null)})
     tasks.push((taskcb) => { stressTestBurstModule.getAndCheckCameraInfo(taskcb); })
+    tasks.push((taskcb) => { xangle.toggleAutoIncrement(true, taskcb); })
     for (let i = 0; i < stressTestBurstModule.burst_count; ++i) {
         tasks.push((taskcb) => { global.logger.info("BURST #" + i); return taskcb(); })
         //tasks.push((taskcb) => { return taskcb(stressTestBurstModule.status.waiting_for_content ? new Error("Did not retrieve file from previous trigger !") : null) });
@@ -247,7 +262,7 @@ stressTestBurstModule.getAndCheckCameraInfo = function (callback) {
 
 // Make sure that the new files are consistent with the cameras that are currently connected
 stressTestBurstModule.checkContent = function (content, callback) {
-    global.logger.info("[STRESS TEST] checking content: " + "{" + stressTestBurstModule.status.shot_counter + "} - " + content.timestamp);
+    global.logger.info("[STRESS TEST] checking content: " + content.timestamp);
     if (content.original_files == null || !content.original_files.length) {
         return callback(new Error("No files reference in the published content metadata"));
     }
@@ -276,10 +291,14 @@ stressTestBurstModule.checkContent = function (content, callback) {
 
 // Callback activated when XCS just published some new content
 xangle.on("new_content", (content) => {
+    stressTestBurstModule.status.shot_counter++;
     global.logger.info("[STRESS TEST] received new content: " + "{" + stressTestBurstModule.status.shot_counter + "} - " + content.timestamp);
     if (stressTestBurstModule.status.waiting_for_content <= 0) {
         return stressTestBurstModule.reportError(new Error("No new content was expected, something went wrong..."));
     };
+    //reset timeout
+    stressTestBurstModule.resetTimeoutToggle = true;
+
     if (content.timestamp) {
         stressTestBurstModule.checkContent(content, (content_error) => {
             stressTestBurstModule.status.waiting_for_content--;

@@ -53,6 +53,25 @@ xangleApiModule.deleteContent = function (timestamp, callback) {
     });
 }
 
+xangleApiModule.toggleAutoIncrement = function (toggle, callback) {
+    let command = { command: toggle ? "enable_auto_sequence_increment" : "disable_auto_sequence_increment" };
+    request.post(server_url + "/api/send_command", {
+        json: command
+    }, (reqError, res /*, body*/) => {
+        var cberr = null;
+        var success = res && res.body && !res.body.err && res.body.success == true;
+        global.logger.verbose("[Xangle API] Sent auto increment toggle: " + toggle);
+        if(reqError || !success){
+            global.logger.warn("[Xangle API] failed to toggleAutoIncrement: "+ reqError);
+            cberr = new Error("failed to toggleAutoIncrement: ", + reqError);
+        }
+        else{
+        }
+        return callback ? callback(cberr, null) : null;
+    });
+}
+
+
 io.on('new_content', (content) => { 
     xangleApiModule.emit("new_content", content);
 })
