@@ -8,7 +8,7 @@ var stressTestBurstModule = {
         burst_counter: 0,
         started: false,
         camera_count: 0,
-        waiting_for_content: false
+        waiting_for_content: 0
     },
     cameras: [],
     order: null,
@@ -129,8 +129,8 @@ stressTestBurstModule.trigger = async function (callback) {
             return callback(new Error("Failed to trigger cameras: " + trigger_error))
         }
         stressTestBurstModule.status.shot_counter++;
-        stressTestBurstModule.status.waiting_for_content = true;
-        global.logger.info("[STRESS TEST] Waiting for shot #" + "{" + stressTestBurstModule.status.shot_counter + "}");
+        stressTestBurstModule.status.waiting_for_content++;
+        global.logger.info("[STRESS TEST] Waiting for shot #" + "{" + stressTestBurstModule.status.shot_counter + "}" + "- " + stressTestBurstModule.status.waiting_for_content + " in waiting line" );
         return callback();
     });
 }
@@ -141,8 +141,8 @@ stressTestBurstModule.mainLoop = function () {
     if(!stressTestBurstModule.status.started){
         return;
     }
-    if (stressTestBurstModule.status.waiting_for_content) {
-        stressTestBurstModule.reportError(new Error("Did not retrieve file from previous trigger !"));
+    if (stressTestBurstModule.status.waiting_for_content > 0) {
+        stressTestBurstModule.reportError(new Error("Did not retrieve all the files from previous triggers !"));
         return;
     }
     stressTestBurstModule.burstLoop((err) => {
@@ -183,7 +183,7 @@ stressTestBurstModule.wait_for_capture = function (callback) {
         }
     });
     stressTestBurstModule.wait_capture_interval = setInterval(() => {
-        if (!stressTestBurstModule.status.waiting_for_content) {
+        if (!stressTestBurstModule.status.waiting_for_content > 0) {
             stressTestBurstModule.stopCaptureTimeout();
             clearInterval(stressTestBurstModule.wait_capture_interval);
             return callback();
@@ -207,18 +207,20 @@ stressTestBurstModule.stopCaptureTimeout = function () {
 // do a set of X triggers in quick succession
 stressTestBurstModule.burstLoop = async function (callback) {
 
-    if (stressTestBurstModule.status.waiting_for_content) {
-        return callback(new Error("Did not retrieve file from previous trigger !"))
+    if (stressTestBurstModule.status.waiting_for_content > 0) {
+        return callback(new Error("Did not retrieve all shots from previous burst. Missing: " + stressTestBurstModule.status.waiting_for_content ))
     }
     var tasks = [];
+    tasks.push((taskcb) => { return taskcb(!stressTestBurstModule.status.started ? new Error("Test stopped") : null)})
+    tasks.push((taskcb) => { stressTestBurstModule.getAndCheckCameraInfo(taskcb); })
     for (let i = 0; i < stressTestBurstModule.burst_count; ++i) {
-        if( tasks.push((taskcb) => { global.logger.info("BURST #" + i); return taskcb(); }))
         tasks.push((taskcb) => { global.logger.info("BURST #" + i); return taskcb(); })
-        tasks.push((taskcb) => { return taskcb(stressTestBurstModule.status.waiting_for_content ? new Error("Did not retrieve file from previous trigger !") : null) });
-        tasks.push((taskcb) => { stressTestBurstModule.getAndCheckCameraInfo(taskcb); })
+        //tasks.push((taskcb) => { return taskcb(stressTestBurstModule.status.waiting_for_content ? new Error("Did not retrieve file from previous trigger !") : null) });
         tasks.push((taskcb) => { stressTestBurstModule.trigger(taskcb); })
-        tasks.push((taskcb) => { stressTestBurstModule.wait_for_capture(taskcb); })
+        tasks.push((taskcb) => { setTimeout( () => { return taskcb(); } , stressTestBurstModule.burst_delay)});
     }
+    tasks.push((taskcb) => { stressTestBurstModule.wait_for_capture(taskcb); })
+
     async_module.series(tasks, (err) => {
         if (err) {
             stressTestBurstModule.reportError(err);
@@ -275,12 +277,12 @@ stressTestBurstModule.checkContent = function (content, callback) {
 // Callback activated when XCS just published some new content
 xangle.on("new_content", (content) => {
     global.logger.info("[STRESS TEST] received new content: " + "{" + stressTestBurstModule.status.shot_counter + "} - " + content.timestamp);
-    if (!stressTestBurstModule.status.waiting_for_content) {
+    if (stressTestBurstModule.status.waiting_for_content <= 0) {
         return stressTestBurstModule.reportError(new Error("No new content was expected, something went wrong..."));
     };
     if (content.timestamp) {
         stressTestBurstModule.checkContent(content, (content_error) => {
-            stressTestBurstModule.status.waiting_for_content = false;
+            stressTestBurstModule.status.waiting_for_content--;
             if (content_error) {
                 stressTestBurstModule.reportError(content_error)
             } else {

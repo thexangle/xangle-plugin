@@ -23,7 +23,7 @@
         "autostart": true,
         "stop_on_error":true, 
         "capture_timeout":10000, 
-        "burst_delay": 100,
+        "burst_delay": 1000,
         "burst_count":5, 
         "burst_cooldown":20000,
         "save_frequency": 10
