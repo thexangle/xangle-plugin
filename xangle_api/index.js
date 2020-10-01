@@ -7,6 +7,7 @@ var router = require("../route");
 var server_url = global_config.socket_io_server_url ? global_config.socket_io_server_url : "http://localhost:8091"
 const request = require('request');
 const async = require('async');
+const fs = require('fs');
 
 xangleApiModule.getCameras = function (callback) {
     request.get(server_url + "/api/cameras", (err, res) => {
@@ -22,15 +23,33 @@ xangleApiModule.getCameraOrder = function (callback) {
     });
 }
 
-xangleApiModule.trigger = function (callback) {
+xangleApiModule.getServerInfo = function (callback) {
+    request.get(server_url + "/api/server_info", (err, res) => {
+        if(err || !res || !res.body) { return callback(err) }
+        return callback(err, JSON.parse(res.body));
+    });
+}
+
+xangleApiModule.trigger = function (params, callback) {
     global.logger.verbose("[Xangle API] Sending trigger signal");
     request.post(server_url + "/api/trigger", {
-        json: {}
+        json: params ? params : {}
     }, (error, res /*, body*/) => {
         global.logger.verbose("[Xangle API] Sent trigger command... ");
         return callback ? callback(error, res) : null;
     });
 }
+
+xangleApiModule.prepare_trigger = function (params, callback) {
+    global.logger.verbose("[Xangle API] Sending prepare trigger signal");
+    request.post(server_url + "/api/prepare_trigger", {
+        json: params ? params : {}
+    }, (error, res /*, body*/) => {
+        global.logger.verbose("[Xangle API] Sent prepare_trigger command... ");
+        return callback ? callback(error, res) : null;
+    });
+}
+
 
 xangleApiModule.deleteContent = function (timestamp, callback) {
     request.post(server_url + "/api/delete-content", {
@@ -71,6 +90,46 @@ xangleApiModule.toggleAutoIncrement = function (toggle, callback) {
     });
 }
 
+xangleApiModule.sendCommand = function (command, callback) {
+    request.post(server_url + "/api/send_command", {
+        json: command
+    }, (reqError, res /*, body*/) => {
+        var cberr = null;
+        var success = res && res.body && !res.body.err && res.body.success == true;
+        global.logger.verbose("[Xangle API] Sent command: " + JSON.stringify(command, null, 4));
+        if(reqError || !success){
+            global.logger.warn("[Xangle API] failed to send command: "+ reqError);
+            cberr = new Error("failed to send command: ", + reqError);
+        }
+        else{
+        }
+        return callback ? callback(cberr, null) : null;
+    });
+}
+
+
+xangleApiModule.uploadAsset = function(asset_name, filepath, callback) {
+
+    var options = {
+        asset_name: asset_name,
+        file: fs.createReadStream(filepath)
+    }
+    
+    request.post({url: server_url + "/api/asset/upload", formData: options}, (reqError, res /*, body*/) => {
+        var cberr = null;
+        var res_body = res && res.body ? JSON.parse(res.body) : null;
+        var success = res_body && !res_body.err && res_body.success == true;
+        global.logger.verbose("[Xangle API] Sent asset: " + res_body.data.filename);
+        if(reqError || !success){
+            global.logger.warn("[Xangle API] failed to send asset: "+ reqError);
+            cberr = new Error("failed to send asset: " + reqError);
+        }
+        else{
+            global.logger.verbose("[Xangle API] response: " + JSON.stringify(res_body.data)); 
+        }
+        return callback ? callback(cberr, res_body ? res_body.data : null) : null;
+    });
+  }
 
 io.on('new_content', (content) => { 
     xangleApiModule.emit("new_content", content);

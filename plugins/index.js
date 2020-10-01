@@ -20,7 +20,7 @@ available_share_plugins.forEach( (file) => {
             plugins.share.push(plugin);
         }
     }catch(e){
-        global.logger.error("failed to load plugin: ", file, " -> ", e);
+        global.logger.error("failed to load plugin: " + file, " -> " + e);
     }
 });
 
@@ -32,7 +32,7 @@ available_camera_plugins.forEach( (file) =>{
             plugins.camera.push(plugin);
         }
     }catch(e){
-        global.logger.info("failed to load plugin: ", file, " -> ", e);
+        global.logger.info("failed to load plugin: " + file + " -> " + e);
     }
 });
 

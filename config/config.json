@@ -19,7 +19,7 @@
     },
     "stress_test_burst":
     {
-        "enabled": true, 
+        "enabled": false, 
         "autostart": true,
         "stop_on_error":true, 
         "capture_timeout":10000, 
@@ -27,5 +27,9 @@
         "burst_count":5, 
         "burst_cooldown":20000,
         "save_frequency": 10
+    },
+    "projector":{
+        "enabled": true,
+        "image_path":"assets/images/projector.png"
     }
 }

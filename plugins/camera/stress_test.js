@@ -120,7 +120,7 @@ stressTestModule.getCameraOrder = async function (callback) {
 }
 
 stressTestModule.trigger = async function(callback){
-    xangle.trigger((trigger_error) => {
+    xangle.trigger({},(trigger_error) => {
         if (trigger_error) {
             return callback(new Error("Failed to trigger cameras: " + trigger_error))
         }
