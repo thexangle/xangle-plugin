@@ -38,6 +38,10 @@ if (global_config.stress_test_burst && global_config.stress_test_burst.burst_coo
     stressTestBurstModule.burst_cooldown = global_config.stress_test_burst.burst_cooldown;
 }
 
+if (global_config.stress_test_burst && global_config.stress_test_burst.sleep_between_bursts) {
+    stressTestBurstModule.sleep_between_bursts = global_config.stress_test_burst.sleep_between_bursts;
+}
+
 if (global_config.stress_test_burst && global_config.stress_test_burst.burst_delay) {
     stressTestBurstModule.burst_delay = global_config.stress_test_burst.burst_delay;
 }
@@ -159,6 +163,21 @@ stressTestBurstModule.mainLoop = function () {
             },500);
             // stop the progress bar
            
+            if(stressTestBurstModule.burst_cooldown > 10000 && stressTestBurstModule.sleep_between_bursts){
+                let sleepStart = 1000;
+                let sleepEnd = stressTestBurstModule.burst_cooldown - 5000;
+                
+                setTimeout( () => { 
+                    global.logger.info("[STRESS TEST] Putting android devices to sleep")
+                    xangle.sendCommand( {command: "toggle_android_sleep", sleep: true}, () => {});
+                }, sleepStart);
+
+                setTimeout( () => { 
+                    global.logger.info("[STRESS TEST] Waking up android devices")
+                    xangle.sendCommand( {command: "toggle_android_sleep", sleep: false}, () => {});
+                }, sleepEnd);
+            }
+
             setTimeout(() => {
                 
                 clearInterval(progressInterval);
