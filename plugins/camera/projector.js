@@ -7,7 +7,7 @@ const global_config = require("../../config/config.json");
 const xangle = require("../../xangle_api");
 const async_module = require("async");
 
-ProjectorPlugin.enabled = global_config.projector && global_config.projector.enabled;
+ProjectorPlugin.enabled = global_config.plugins_to_run && global_config.plugins_to_run.indexOf("projector") != -1;
 
 if (!ProjectorPlugin.enabled) {
     return;

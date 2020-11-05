@@ -3,6 +3,7 @@ var xangleApiModule = new EventEmitter();
 
 var global_config = require("../config/config.json");
 const io = require('../config/socket.io').io;
+const udp = require('../udp');
 var router = require("../route");
 var server_url = global_config.socket_io_server_url ? global_config.socket_io_server_url : "http://localhost:8091"
 const request = require('request');
@@ -134,5 +135,23 @@ xangleApiModule.uploadAsset = function(asset_name, filepath, callback) {
 io.on('new_content', (content) => { 
     xangleApiModule.emit("new_content", content);
 })
+
+udp.on('commands', (commands_array) =>{
+    let trigger_delay = -1;
+    // Xangle typically sends sets of commands to the camera including the actual trigger in the form of a "Press full" signal
+    commands_array.commands.forEach((command) =>{
+        if(command.command == "setSetting" && command.setting == "eosremoterelease" && command.value == "Press Full"){
+                trigger_delay = command.delay ? command.delay : 0;
+        }
+        if(command.command == "trigger"){
+            trigger_delay = command.delay ? command.delay : 0;
+        }
+    })
+    if(trigger_delay >= 0){
+        // Notify plugins that a trigger is pending
+        xangleApiModule.emit("trigger", { delay: trigger_delay, commands: commands_array } );
+    }
+})
+
 
 module.exports = xangleApiModule;

@@ -2,35 +2,30 @@
     "NODE_ENV": "prod",
     "DEBUG": true,
     "PORT": 9092,
-    "cloudinary":
-    {
-        "enabled": false,
+    "cloudinary": {
         "cloud_name": "XXXXXXX",
         "api_key": "12312334343",
         "api_secret": "XXXXXXXX"
     },
-    "stress_test":
-    {
-        "enabled": false, 
+    "stress_test": {
         "autostart": true,
-        "stop_on_error":true, 
-        "trigger_interval":10000, 
+        "stop_on_error": true,
+        "trigger_interval": 10000,
         "save_frequency": 10
     },
-    "stress_test_burst":
-    {
-        "enabled": true, 
+    "stress_test_burst": {
         "autostart": true,
-        "stop_on_error":true, 
-        "capture_timeout":10000, 
-        "burst_delay": 1000,
-        "burst_count":5, 
-        "burst_cooldown":20000,
-        "save_frequency": 10, 
-        "sleep_between_bursts":true
+        "stop_on_error": true,
+        "capture_timeout": 10000,
+        "burst_delay": 2000,
+        "burst_count": 5,
+        "burst_cooldown": 20000,
+        "save_frequency": 10,
+        "sleep_between_bursts": true
     },
-    "projector":{
-        "enabled": false,
-        "image_path":"assets/images/projector.png"
-    }
+    "projector": {
+        "image_path": "assets/images/projector.png"
+    },
+    "trigger_observer":{},
+    "plugins_to_run":["trigger_observer"]
 }

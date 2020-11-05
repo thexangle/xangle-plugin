@@ -20,7 +20,8 @@ const chalk = require("chalk")
 const async_module = require("async");
 
 
-stressTestModule.enabled = global_config.stress_test && global_config.stress_test.enabled;
+stressTestModule.enabled = global_config.plugins_to_run && global_config.plugins_to_run.indexOf("stress_test") != -1;
+
 if (global_config.stress_test && global_config.stress_test.trigger_interval) {
     stressTestModule.trigger_interval_time = global_config.stress_test.trigger_interval;
 }

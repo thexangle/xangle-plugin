@@ -25,7 +25,7 @@ const chalk = require("chalk")
 const async_module = require("async");
 
 
-stressTestBurstModule.enabled = global_config.stress_test_burst && global_config.stress_test_burst.enabled;
+stressTestBurstModule.enabled = global_config.plugins_to_run && global_config.plugins_to_run.indexOf("stress_test_burst") != -1;
 if (global_config.stress_test_burst && global_config.stress_test_burst.capture_timeout) {
     stressTestBurstModule.capture_timeout = global_config.stress_test_burst.capture_timeout;
 }
