@@ -24,7 +24,7 @@ Clone this repository
  2. Install nodejs from https://nodejs.org (when asked, add node to the PATH and also install npm)
  3. navigate to the local folder and type: ``npm install``
  4. Edit the ``config/config.json`` to add the plugin(s) you want to use in the ``plugins_to_run`` list
- 5. start XangleCS and then run your plugins using `node start` command
+ 5. start XangleCS and then run your plugins using `node index.js` command
 
 
 ## How do I write a new plugin?
