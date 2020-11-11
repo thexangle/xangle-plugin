@@ -136,12 +136,29 @@ io.on('new_content', (content) => {
     xangleApiModule.emit("new_content", content);
 })
 
+udp.on('command', (command) =>{
+    let trigger_delay = -1;
+    let half_press_delay = -1;
+    // Xangle typically sends sets of commands to the camera including the actual trigger in the form of a "Press full" signal
+    if(command.command == "trigger" || (command.command == "setSetting" && command.setting == "eosremoterelease" && command.value == "Press Full")){
+        trigger_delay = command.delay ? command.delay : 0;
+        xangleApiModule.emit("trigger", { delay: trigger_delay, commands: [command]} );
+    }
+    else if(command.command == "setSetting" && command.setting == "eosremoterelease" && command.value == "Press Half"){
+        half_press_delay = command.delay ? command.delay : 0;
+        xangleApiModule.emit("half_press", { delay: half_press_delay, commands:  [command] } );
+    }
+});
 udp.on('commands', (commands_array) =>{
     let trigger_delay = -1;
+    let half_press_delay = -1;
     // Xangle typically sends sets of commands to the camera including the actual trigger in the form of a "Press full" signal
     commands_array.commands.forEach((command) =>{
         if(command.command == "setSetting" && command.setting == "eosremoterelease" && command.value == "Press Full"){
-                trigger_delay = command.delay ? command.delay : 0;
+            trigger_delay = command.delay ? command.delay : 0;
+        }
+        else if(command.command == "setSetting" && command.setting == "eosremoterelease" && command.value == "Press Half"){
+            half_press_delay = command.delay ? command.delay : 0;
         }
         if(command.command == "trigger"){
             trigger_delay = command.delay ? command.delay : 0;
@@ -150,6 +167,10 @@ udp.on('commands', (commands_array) =>{
     if(trigger_delay >= 0){
         // Notify plugins that a trigger is pending
         xangleApiModule.emit("trigger", { delay: trigger_delay, commands: commands_array } );
+    }
+    if(half_press_delay >= 0){
+        // Notify plugins that a half_press is pending
+        xangleApiModule.emit("half_press", { delay: half_press_delay, commands: commands_array } );
     }
 })
 
