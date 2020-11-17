@@ -15,8 +15,9 @@
     },
     "stress_test_burst": {
         "autostart": true,
-        "stop_on_error": true,
-        "capture_timeout": 10000,
+        "stop_on_fatal_error": true,
+        "stop_on_missing_image": false,
+        "capture_timeout": 15000,
         "burst_delay": 2000,
         "burst_count": 5,
         "burst_cooldown": 20000,

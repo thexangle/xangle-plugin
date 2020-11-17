@@ -8,11 +8,6 @@ var request = require('request');
 var async = require('async');
 
 
-cloudinaryModule.enabled =  Config.cloudinary && Config.cloudinary.enabled;
-if(!cloudinaryModule.enabled){
-    return;
-}
-
 if(!cloudConfig || !cloudConfig.cloud_name || !cloudConfig.api_key || !cloudConfig.api_secret ){
     global.logger.error("[PLUGIN] cloudinary config missing. Cannot load plugin");
     return;

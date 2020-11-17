@@ -20,8 +20,6 @@ const chalk = require("chalk")
 const async_module = require("async");
 
 
-stressTestModule.enabled = global_config.plugins_to_run && global_config.plugins_to_run.indexOf("stress_test") != -1;
-
 if (global_config.stress_test && global_config.stress_test.trigger_interval) {
     stressTestModule.trigger_interval_time = global_config.stress_test.trigger_interval;
 }
@@ -30,10 +28,6 @@ if (global_config.stress_test && global_config.stress_test.save_frequency) {
     stressTestModule.save_frequency = global_config.stress_test.save_frequency;
 }
 
-
-if (!stressTestModule.enabled) {
-    return;
-}
 
 if (router) {
     global.logger.debug("Setting HTTP routes for stress_test plugin");

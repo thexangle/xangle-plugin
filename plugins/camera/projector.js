@@ -7,12 +7,6 @@ const global_config = require("../../config/config.json");
 const xangle = require("../../xangle_api");
 const async_module = require("async");
 
-ProjectorPlugin.enabled = global_config.plugins_to_run && global_config.plugins_to_run.indexOf("projector") != -1;
-
-if (!ProjectorPlugin.enabled) {
-    return;
-}
-
 ProjectorPlugin.server_info = null;
 ProjectorPlugin.connection_interval = setInterval(() => {
     xangle.getServerInfo((err, info) => {

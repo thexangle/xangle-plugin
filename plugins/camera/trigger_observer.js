@@ -11,12 +11,6 @@ const testURL = 'https://httpbin.org/anything?cmd=GPIO,12,1'
 
 TriggerObserverPlugin.half_press_enabled = false;
 
-TriggerObserverPlugin.enabled = global_config.plugins_to_run && global_config.plugins_to_run.indexOf("trigger_observer") != -1;
-
-if (!TriggerObserverPlugin.enabled) {
-    return;
-}
-
 xangle.on("trigger", (info) =>{
     global.logger.info("[TRIGGER OBSERVER] Xangle trigger scheduled in: " + info.delay + " ms");
     TriggerObserverPlugin.half_press_enabled = false;

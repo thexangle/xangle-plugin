@@ -8,7 +8,8 @@ var stressTestBurstModule = {
         burst_counter: 0,
         started: false,
         camera_count: 0,
-        waiting_for_content: 0
+        waiting_for_content: 0,
+        missing_image_warnings: 0
     },
     cameras: [],
     order: null,
@@ -25,7 +26,6 @@ const chalk = require("chalk")
 const async_module = require("async");
 
 
-stressTestBurstModule.enabled = global_config.plugins_to_run && global_config.plugins_to_run.indexOf("stress_test_burst") != -1;
 if (global_config.stress_test_burst && global_config.stress_test_burst.capture_timeout) {
     stressTestBurstModule.capture_timeout = global_config.stress_test_burst.capture_timeout;
 }
@@ -48,10 +48,6 @@ if (global_config.stress_test_burst && global_config.stress_test_burst.burst_del
 
 if (global_config.stress_test_burst && global_config.stress_test_burst.burst_count) {
     stressTestBurstModule.burst_count = global_config.stress_test_burst.burst_count;
-}
-
-if (!stressTestBurstModule.enabled) {
-    return;
 }
 
 if (router) {
@@ -91,7 +87,16 @@ stressTestBurstModule.stop = function () {
 // Stop the stress test if the corresponding option is enabled
 stressTestBurstModule.reportError = function (error_message) {
     global.logger.error(error_message.message ? error_message.message : error_message);
-    if (global_config.stress_test_burst && global_config.stress_test_burst.stop_on_error) {
+    if (global_config.stress_test_burst && global_config.stress_test_burst.stop_on_fatal_error) {
+        stressTestBurstModule.stop();
+    }
+}
+
+// Report missing image and stop if configured to do so
+stressTestBurstModule.reportMissingImage = function (error_message) {
+    global.logger.warn(error_message.message ? error_message.message : error_message);
+    stressTestBurstModule.status.missing_image_warnings++;
+    if (global_config.stress_test_burst && global_config.stress_test_burst.stop_on_missing_image) {
         stressTestBurstModule.stop();
     }
 }
@@ -144,10 +149,10 @@ stressTestBurstModule.mainLoop = function () {
     if(!stressTestBurstModule.status.started){
         return;
     }
-    if (stressTestBurstModule.status.waiting_for_content > 0) {
-        stressTestBurstModule.reportError(new Error("Did not retrieve all the files from previous triggers !"));
-        return;
-    }
+    // if (stressTestBurstModule.status.waiting_for_content > 0) {
+    //     stressTestBurstModule.reportMissingImage(new Error("Did not retrieve all the files from previous triggers !"));
+    //     return;
+    // }
     stressTestBurstModule.burstLoop((err) => {
         if (!err) {
             stressTestBurstModule.status.burst_counter++;
@@ -197,7 +202,11 @@ stressTestBurstModule.wait_for_capture = function (callback) {
             if (stressTestBurstModule.wait_capture_interval) {
                 clearInterval(stressTestBurstModule.wait_capture_interval);
             }
-            return callback(err);
+            if(!global_config.stress_test_burst.stop_on_missing_image){
+                stressTestBurstModule.reportMissingImage(err);
+                return callback(null);
+            }
+            return callback(global_config.stress_test_burst.stop_on_missing_image ? err : null);
         }
     });
     if (stressTestBurstModule.wait_capture_interval) {
@@ -216,6 +225,10 @@ stressTestBurstModule.wait_for_capture = function (callback) {
                 if (err) {
                     if (stressTestBurstModule.wait_capture_interval) {
                         clearInterval(stressTestBurstModule.wait_capture_interval);
+                    }
+                    if(!global_config.stress_test_burst.stop_on_missing_image){
+                        stressTestBurstModule.reportMissingImage(err);
+                        return callback(null);
                     }
                     return callback(err);
                 }
@@ -240,8 +253,15 @@ stressTestBurstModule.stopCaptureTimeout = function () {
 // do a set of X triggers in quick succession
 stressTestBurstModule.burstLoop = async function (callback) {
 
+    if(stressTestBurstModule.status.missing_image_warnings){
+        global.logger.warn("missing images from previous shots: ", stressTestBurstModule.status.missing_image_warnings);
+    }
     if (stressTestBurstModule.status.waiting_for_content > 0) {
-        return callback(new Error("Did not retrieve all shots from previous burst. Missing: " + stressTestBurstModule.status.waiting_for_content ))
+        if(global_config.stress_test_burst.stop_on_missing_image){
+            return callback(new Error("Did not retrieve all shots from previous burst. Missing: " + stressTestBurstModule.status.waiting_for_content ))
+        }
+        stressTestBurstModule.status.waiting_for_content = 0;
+        global.logger.warn("Did not retrieve all shots from previous burst. Warning count: " + stressTestBurstModule.status.missing_image_warnings )
     }
     var tasks = [];
     tasks.push((taskcb) => { return taskcb(!stressTestBurstModule.status.started ? new Error("Test stopped") : null)})
@@ -322,7 +342,7 @@ xangle.on("new_content", (content) => {
         stressTestBurstModule.checkContent(content, (content_error) => {
             stressTestBurstModule.status.waiting_for_content--;
             if (content_error) {
-                stressTestBurstModule.reportError(content_error)
+                stressTestBurstModule.reportMissingImage(content_error)
             } else {
                 global.logger.info(chalk.green("[STRESS TEST] CHECK Passed for shot #" + stressTestBurstModule.status.shot_counter + " - " + content.timestamp))
                 stressTestBurstModule.reportSuccess();
