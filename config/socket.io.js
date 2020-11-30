@@ -8,6 +8,8 @@ const io = socket_io_client(server_url + "/callbacks", {
     // Socket.io options here
 });
 
+const webio = socket_io_client(server_url + "/webapp", { });
 
 
 exports.io = io;
+exports.webio = webio;

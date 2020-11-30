@@ -3,6 +3,7 @@ var xangleApiModule = new EventEmitter();
 
 var global_config = require("../config/config.json");
 const io = require('../config/socket.io').io;
+const webio = require('../config/socket.io').webio;
 const udp = require('../udp');
 var router = require("../route");
 var server_url = global_config.socket_io_server_url ? global_config.socket_io_server_url : "http://localhost:8091"
@@ -172,6 +173,14 @@ udp.on('commands', (commands_array) =>{
         // Notify plugins that a half_press is pending
         xangleApiModule.emit("half_press", { delay: half_press_delay, commands: commands_array } );
     }
+})
+
+webio.on('selfie_mode_cooldown_start', () =>{
+    xangleApiModule.emit("selfie_start" );
+})
+
+webio.on('remote_do_trigger', () => {
+    xangleApiModule.emit("remote_start");
 })
 
 

@@ -1,0 +1,1 @@
+node index.js --plugin trigger_observer
