@@ -9,7 +9,7 @@ const request = require('request')
 
 const testURL = 'https://httpbin.org/anything?cmd=GPIO,12,1'
 
-TriggerObserverPlugin.half_press_enabled = false;
+TriggerObserverPlugin.trigger_countdown_in_progress = false;
 
 let doGetRequest = function (callback) {
     request.get(testURL, (err, res) => {
@@ -22,30 +22,20 @@ let doGetRequest = function (callback) {
     });
 }
 
-xangle.on("trigger", (info) =>{
-    global.logger.info("[TRIGGER OBSERVER] Xangle trigger scheduled in: " + info.delay + " ms");
-    TriggerObserverPlugin.half_press_enabled = false;
-})
+xangle.on("trigger_cooldown_progress", (data) =>{
 
-xangle.on("half_press", (info) =>{
-    global.logger.info("[TRIGGER OBSERVER] Xangle half_press scheduled in: " + info.delay + " ms");
-    // if(!TriggerObserverPlugin.half_press_enabled){
-    //     TriggerObserverPlugin.half_press_enabled = true;
-    //     request.get(testURL, (err, res) => {
-    //         if(err) { global.logger.error("[TRIGGER OBSERVER] Failed to send request to: " + url); }
-    //         else{
-    //             global.logger.debug("HTTP request sent (" + testURL +")");
-    //             //global.logger.debug("[TRIGGER OBSERVER] GET response: " + res.body);
-    //         }
-    //     });
-    // }
-})
-
-
-xangle.on("selfie_start", () =>{
-    doGetRequest();
-});
-
-xangle.on("remote_start", () =>{
-    doGetRequest();
+    if(data.remaining != undefined && data.remaining  <= 0){
+        TriggerObserverPlugin.trigger_countdown_in_progress = false;
+        global.logger.info("[TRIGGER OBSERVER] trigger countdown finished");
+    }
+    else if(!TriggerObserverPlugin.trigger_countdown_in_progress){
+        TriggerObserverPlugin.trigger_countdown_in_progress = true;
+        var message = "[TRIGGER OBSERVER] trigger countdown started ";
+        if(data.remaining != undefined) {
+            message+= "" + data.remaining + " ms before trigger";
+        }
+        global.logger.info(message);
+        doGetRequest();
+    }
+   
 });

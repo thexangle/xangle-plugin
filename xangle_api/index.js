@@ -175,12 +175,12 @@ udp.on('commands', (commands_array) =>{
     }
 })
 
-webio.on('selfie_mode_cooldown_start', () =>{
-    xangleApiModule.emit("selfie_start" );
-})
-
 webio.on('remote_do_trigger', () => {
     xangleApiModule.emit("remote_start");
+})
+
+webio.on('trigger_cooldown_progress', (data) =>{
+    xangleApiModule.emit("trigger_cooldown_progress", data );
 })
 
 
