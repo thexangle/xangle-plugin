@@ -179,8 +179,13 @@ webio.on('remote_do_trigger', () => {
     xangleApiModule.emit("remote_start");
 })
 
+// For legacy typo...
 webio.on('trigger_cooldown_progress', (data) =>{
-    xangleApiModule.emit("trigger_cooldown_progress", data );
+    xangleApiModule.emit("trigger_countdown_progress", data );
+})
+
+webio.on('trigger_countdown_progress', (data) =>{
+    xangleApiModule.emit("trigger_countdown_progress", data );
 })
 
 

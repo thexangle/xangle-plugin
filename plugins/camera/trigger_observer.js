@@ -22,7 +22,7 @@ let doGetRequest = function (callback) {
     });
 }
 
-xangle.on("trigger_cooldown_progress", (data) =>{
+xangle.on("trigger_countdown_progress", (data) =>{
 
     if(data.remaining != undefined && data.remaining  <= 0){
         TriggerObserverPlugin.trigger_countdown_in_progress = false;
